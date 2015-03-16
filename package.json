@@ -1,0 +1,31 @@
+{
+  "name": "mypromise",
+  "version": "1.0.0",
+  "description": "a demo implement of promise api",
+  "main": "promise.js",
+  "scripts": {
+    "pretest": "npm install",
+    "test": "karma start karma.conf.js",
+    "test-single-run": "karma start karma.conf.js --single-run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/junchangchen/mypromise.git"
+  },
+  "keywords": [
+    "javascript",
+    "promise"
+  ],
+  "author": "junchangchen",
+  "license": "Apache2.0",
+  "bugs": {
+    "url": "https://github.com/junchangchen/mypromise/issues"
+  },
+  "homepage": "https://github.com/junchangchen/mypromise",
+  "devDependencies": {
+    "jasmine-core": "^2.2.0",
+    "karma": "^0.12.31",
+    "karma-chrome-launcher": "^0.1.7",
+    "karma-jasmine": "^0.3.5"
+  }
+}

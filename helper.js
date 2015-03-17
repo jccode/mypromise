@@ -6,32 +6,48 @@
     };
 
     function start() {
-        var pa = $q(function() {
-            asyncAddLinks("A", 200);
+        var pa = $q(function(resolve, reject) {
+            setTimeout(function() {
+                addLinks("A");
+                resolve("addLink A");
+            }, 100);
         });
-        var pb = $q(function() {
-            asyncAddLinks("B", 1000);
+        
+        var pb = $q(function(resolve, reject) {
+            setTimeout(function() {
+                addLinks("B");
+                resolve("addLink B");
+            }, 1000);
         });
 
-        $q.all([pa, pb]).then(function(result) {
-            alert('c');
-            console.log('C');
-            var links= document.getElementsByTagName("a");
-            for(var i=0, l=links.length; i<l; i++) {
-                links[i].innerHTML="C"; // change all links text
-            }
+        /*
+        pb.then(function(result) {
+            console.log( "b done" );
+            console.log( result );
+
         });
+         */
+        
+
+        $q.all([pa, pb]).then(function(result) {
+            console.log( "all ok " );
+            console.log( result );
+
+            setTimeout(function() {
+                var links= document.getElementsByTagName("a");
+                for(var i=0, l=links.length; i<l; i++) {
+                    links[i].innerHTML="C"; // change all links text
+                }
+            }, 500);
+        });
+
 
     }
 
-    function asyncAddLinks(txt, timeout) {
-        setTimeout(function() {
-            
-            for(var i=0; i<10; i++) {
-                addLink(txt);
-            }
-            
-        }, timeout);
+    function addLinks(text) {
+        for(var i=0; i<10; i++) {
+            addLink(text);
+        }
     }
 
 

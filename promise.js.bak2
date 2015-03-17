@@ -6,15 +6,15 @@ function $q(resolver) {
 }
 
 $q.defer = function() {
-    // to be implement
+    return new Deferred();
 }
 
 $q.reject = function(reason) {
-    // to be implement
+    return new Promise();
 }
 
 $q.when = function(value) {
-    // to be implement
+    return new Promise();
 }
 
 $q.all = function(promises) {
@@ -53,13 +53,29 @@ var FULFILLED = 1;
 var REJECTED = 2;
 
 function Promise(fn) {
-    this.state = PENDING;
+    // store state which can be PENDING, FULFILLED or REJECTED
+    var state = PENDING;
 
-    this.value = null;
+    // store value once FULFILLED or REJECTED
+    var value = null;
 
-    this.handlers = [];
+    // store sucess & failure handlers
+    var handlers = [];
 
-    
+    function fulfill(result) {
+        state = FULFILLED;
+        value = result;
+        handlers.forEach(handle);
+        handlers = null;
+    }
+
+    function reject(error) {
+        state = REJECTED;
+        value = error;
+        handlers.forEach(handle);
+        handlers = null;
+    }
+
     function resolve(result) {
         try {
             var then = getThen(result);
@@ -67,58 +83,44 @@ function Promise(fn) {
                 doResolve(then.bind(result), resolve, reject);
                 return;
             }
-            this.fulfill(result);
+            fulfill(result);
         } catch (e) {
-            this.reject(e);
+            reject(e);
         }
     }
 
-    
-
-    
-
-    
-
-    doResolve(fn, resolve.bind(this), this.reject.bind(this));
-}
-
-Promise.prototype = {
-    fulfill: function(result) {
-        this.state = FULFILLED;
-        this.value = result;
-        this.handlers.forEach(this.handle.bind(this));
-        this.handlers = null;
-    }, 
-
-    reject: function(error) {
-        this.state = REJECTED;
-        this.value = error;
-        this.handlers.forEach(this.handle.bind(this));
-        this.handlers = null;
-    },
-
-    handle: function(handler) {
-        if (this.state === PENDING) {
-            this.handlers.push(handler);
+    function handle(handler) {
+        if (state === PENDING) {
+            handlers.push(handler);
         } else {
-            if (this.state === FULFILLED &&
+            if (state === FULFILLED &&
                 typeof handler.onFulfilled === 'function') {
-                handler.onFulfilled(this.value);
+                handler.onFulfilled(value);
             }
-            if (this.state === REJECTED &&
+            if (state === REJECTED &&
                 typeof handler.onRejected === 'function') {
-                handler.onRejected(this.value);
+                handler.onRejected(value);
             }
         }
-    },
+    }
 
-    then: function (successCallback, errorCallback) {
+    this.done = function (onFulfilled, onRejected) {
+        // ensure we are always asynchronous
+        setTimeout(function () {
+            handle({
+                onFulfilled: onFulfilled,
+                onRejected: onRejected
+            });
+        }, 0);
+    };
+
+    this.then = function (onFulfilled, onRejected) {
         var self = this;
         return new Promise(function (resolve, reject) {
             return self.done(function (result) {
-                if (typeof successCallback === 'function') {
+                if (typeof onFulfilled === 'function') {
                     try {
-                        return resolve(successCallback(result));
+                        return resolve(onFulfilled(result));
                     } catch (ex) {
                         return reject(ex);
                     }
@@ -126,9 +128,9 @@ Promise.prototype = {
                     return resolve(result);
                 }
             }, function (error) {
-                if (typeof errorCallback === 'function') {
+                if (typeof onRejected === 'function') {
                     try {
-                        return resolve(errorCallback(error));
+                        return resolve(onRejected(error));
                     } catch (ex) {
                         return reject(ex);
                     }
@@ -137,17 +139,15 @@ Promise.prototype = {
                 }
             });
         });
-    },
+    };
 
-    done: function (onFulfilled, onRejected) {
-        var self = this;
-        setTimeout(function () {
-            self.handle({
-                onFulfilled: onFulfilled,
-                onRejected: onRejected
-            });
-        }, 0);
-    }
+    // this.combine = function(promise) {
+    //     var self = this;
+    //     return self.then(promise.then, reject);
+    // };
+
+
+    doResolve(fn, resolve, reject);
 }
 
 

@@ -18,29 +18,29 @@ $q.when = function(value) {
 }
 
 $q.all = function(promises) {
-    var args = Array.prototype.slice.call(promises);
     return new Promise(function (resolve, reject) {
-        if (args.length === 0) return resolve([]);
-        var remaining = args.length;
+        if (promises.length === 0) return resolve([]);
+        var len = promises.length, 
+            results = new Array(len);
         function res(i, val) {
             try {
                 if (val && (typeof val === 'object' || typeof val === 'function')) {
-                    var then = val.then;
-                    if (typeof then === 'function') {
-                        then.call(val, function (val) { res(i, val) }, reject);
+                    var then = getThen(val);
+                    if(then) {
+                        then.call(val, function (val) { res(i, val); }, reject);
                         return;
                     }
                 }
-                args[i] = val;
-                if (--remaining === 0) {
-                    resolve(args);
+                results[i] = val;
+                if (--len === 0) {
+                    resolve(results);
                 }
             } catch (ex) {
                 reject(ex);
             }
         }
-        for (var i = 0; i < args.length; i++) {
-            res(i, args[i]);
+        for (var i = 0; i < promises.length; i++) {
+            res(i, promises[i]);
         }
     });
 }
@@ -54,12 +54,9 @@ var REJECTED = 2;
 
 function Promise(fn) {
     this.state = PENDING;
-
-    this.value = null;
-
+    this.result = null;
     this.handlers = [];
 
-    
     function resolve(result) {
         try {
             var then = getThen(result);
@@ -67,48 +64,39 @@ function Promise(fn) {
                 doResolve(then.bind(result), resolve, reject);
                 return;
             }
-            this.fulfill(result);
+            this._fulfill(result);
         } catch (e) {
-            this.reject(e);
+            this._reject(e);
         }
     }
 
-    
-
-    
-
-    
-
-    doResolve(fn, resolve.bind(this), this.reject.bind(this));
+    doResolve(fn, resolve.bind(this), this._reject.bind(this));
 }
 
 Promise.prototype = {
-    fulfill: function(result) {
+    _fulfill: function(result) {
         this.state = FULFILLED;
-        this.value = result;
-        this.handlers.forEach(this.handle.bind(this));
+        this.result = result;
+        this.handlers.forEach(this._handle.bind(this));
         this.handlers = null;
     }, 
 
-    reject: function(error) {
+    _reject: function(error) {
         this.state = REJECTED;
-        this.value = error;
-        this.handlers.forEach(this.handle.bind(this));
+        this.result = error;
+        this.handlers.forEach(this._handle.bind(this));
         this.handlers = null;
     },
 
-    handle: function(handler) {
+    _handle: function(handler) {
         if (this.state === PENDING) {
             this.handlers.push(handler);
-        } else {
-            if (this.state === FULFILLED &&
-                typeof handler.onFulfilled === 'function') {
-                handler.onFulfilled(this.value);
-            }
-            if (this.state === REJECTED &&
-                typeof handler.onRejected === 'function') {
-                handler.onRejected(this.value);
-            }
+        }
+        else if(this.state === FULFILLED) {
+            typeof handler.onFulfilled === 'function' && handler.onFulfilled(this.result);
+        }
+        else if(this.state === REJECTED) {
+            typeof handler.onRejected === 'function' && handler.onRejected(this.result);
         }
     },
 
@@ -142,7 +130,7 @@ Promise.prototype = {
     done: function (onFulfilled, onRejected) {
         var self = this;
         setTimeout(function () {
-            self.handle({
+            self._handle({
                 onFulfilled: onFulfilled,
                 onRejected: onRejected
             });
@@ -174,7 +162,7 @@ function doResolve(fn, onFulfilled, onRejected) {
             if (done) return;
             done = true;
             onRejected(reason);
-        })
+        });
     } catch (ex) {
         if (done) return;
         done = true;

@@ -27,7 +27,6 @@
 
         });
          */
-        
 
         $q.all([pa, pb]).then(function(result) {
             console.log( "all ok " );
@@ -40,8 +39,6 @@
                 }
             }, 500);
         });
-
-
     }
 
     function addLinks(text) {

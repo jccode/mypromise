@@ -15,10 +15,28 @@ describe("mypromise lib spec", function() {
         expect(resolveValue).toEqual(123);
     });
 
-    it("$q should return a defer object as well", function() {
-        var deferred = $q(function(resolve, reject) {
+    it("$q should return a Promise object as well", function() {
+        var prom = $q(function(resolve, reject) {
         });
 
-        expect(deferred instanceof Deferred).toBeTruthy();
+        expect(prom instanceof Promise).toBeTruthy();
+    });
+
+    it("should support combine multipy promise into one", function() {
+        var a, b;
+        var pa = $q(function() {
+            setTimeout(function() {
+                a = 1;
+            }, 200);
+        });
+        var pb = $q(function() {
+            setTimeout(function() {
+                b = 2;
+            }, 100);
+        });
+        $q.all([pa, pb]).then(function() {
+            expect(a).toBe(1);
+            expect(b).toBe(2);
+        });
     });
 });

@@ -1,0 +1,111 @@
+
+// ---------- $q ----------
+
+function $q(resolver) {
+    return new Promise(resolver);
+}
+
+$q.defer = function() {
+    return new Deferred();
+}
+
+$q.reject = function(reason) {
+    return new Promise();
+}
+
+$q.when = function(value) {
+    return new Promise();
+}
+
+$q.all = function(promises) {
+    var p = new Promise();
+    for(var i=0, l=promises.length; i<l; i++) {
+        p._setResolverList( p.resolverList.concat(promises[i].resolverList) );
+    }
+    return p;
+}
+
+
+
+// ---------- Deferred ----------
+
+function Deferred() {
+    this.promise = new Promise();
+}
+
+Deferred.prototype = {
+    resolve: function(value) {
+        
+    }, 
+
+    reject: function(reason) {
+        
+    }, 
+
+    notify: function(value) {
+        
+    }
+}
+
+
+// ---------- Promise ----------
+
+function Promise(resolver) {
+    this.resolverList = [];
+    this.results = [];
+    this.successCallback = null;
+    this.errorCallback = null;
+    this.notifyCallback = null;
+    this.finalCallback = null;
+
+    if(resolver && typeof resolver === 'function') {
+        this.resolverList.push(this._wrapResolver(resolver));
+        this.resolverLength = this.resolverList.length;
+    }
+    // console.log(this.resolverList);
+}
+
+Promise.prototype = {
+    then: function(successCallback, errorCallback, notifyCallback) {
+        this.successCallback = successCallback || null;
+        this.errorCallback = errorCallback || null;
+        this.notifyCallback = notifyCallback || null;
+        
+        var rlen = this.resolverList.length;
+        while(this.resolverList[0]) {
+            this.resolverList.shift().call(this, null);
+        }
+    }, 
+
+    catch: function(errorCallback) {
+        this.errorCallback = errorCallback || null;
+    }, 
+
+    finally: function(callback, notifyCallback) {
+        this.finalCallback = callback || null;
+        this.notifyCallback = notifyCallback || null;
+    },
+
+    _setResolverList: function(resolverList) {
+        this.resolverList = resolverList;
+        this.resolverLength = this.resolverList.length;
+    }, 
+
+    _wrapResolver: function(fn) {
+        return function() {
+            try {
+                var ret = fn.call(this, null);
+                this.results.push(ret);
+
+                if(this.resolverLength == this.results.length) {
+                    this.successCallback.apply(this, this.results);
+                }
+            } catch(e) {
+                this.errorCallback && this.errorCallback.apply(this, e);
+            } finally {
+                this.finalCallback && this.finalCallback.apply(this, this.results);
+            }            
+        };
+    }
+
+}
